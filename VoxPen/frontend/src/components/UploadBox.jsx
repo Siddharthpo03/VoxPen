@@ -1,0 +1,55 @@
+import { FiUploadCloud, FiMic } from "react-icons/fi";
+import axios from "axios";
+
+function UploadBox() {
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+
+    if (!file) return;
+
+    const formData = new FormData();
+
+    formData.append("audio", file);
+
+    try {
+      const response = await axios.post(
+        "http://localhost:5000/api/upload",
+        formData,
+      );
+
+      console.log(response.data);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  return (
+    <div className="flex justify-center mt-14 relative z-10">
+      <div className="bg-zinc-900/70 backdrop-blur-xl border border-zinc-800 p-10 rounded-3xl w-[700px] text-center shadow-2xl">
+        <FiUploadCloud className="text-6xl mx-auto text-purple-500 " />
+        <h2 className="text-3xl font-semibold mt-5">Upload Audio File</h2>
+        <p className="text-zinc-400 mt-3">
+          Drap and drop audio files or record live speech.
+        </p>
+        <div className="flex justify-center gap-5 mt-8">
+          <label className="bg-purple-600 hover:bg-purple-700 px-8 py-4 rounded-2xl text-lg font-medium transition-all cursor-pointer">
+            Upload Audio
+            <input
+              type="file"
+              accept="audio/*"
+              onChange={handleFileUpload}
+              hidden
+            />
+          </label>
+
+          <button className="border border-zinc-700 hover:border-purple-500 px-8 py-4 rounded-2xl text-lg transition-all flex items-center gap-2 cursor-pointer">
+            <FiMic />
+            Record
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default UploadBox;
