@@ -1,17 +1,29 @@
+import { useState } from "react";
+
 import Navbar from "./components/Navbar";
 import Hero from "./components/Hero";
 import UploadBox from "./components/UploadBox";
 import TranscriptBox from "./components/TranscriptBox";
+import Footer from "./components/Footer";
 
 function App() {
+  const [transcript, setTranscript] = useState("");
+  const [loading, setLoading] = useState(false);
+
   return (
-    <div className="min-h-screen bg-zinc-950 text-white relative overflow-hidden">
-      <div className="absolute top-[-100px] left-[-100px] w-[400px] h-[400px] bg-purple-600 rounded-full opacity-20 blur-[120px]"></div>
-      <div className="absolute bottom-[-100px] right-[-100px] w-[400px] h-[400px] bg-blue-600 rounded-full opacity-20 blur-[120px]"></div>
+    <div className="min-h-screen bg-zinc-950 text-white">
       <Navbar />
+
       <Hero />
-      <UploadBox />
-      <TranscriptBox />
+
+      <UploadBox
+        setTranscript={setTranscript}
+        loading={loading}
+        setLoading={setLoading}
+      />
+
+      <TranscriptBox transcript={transcript} loading={loading} />
+      <Footer />
     </div>
   );
 }
