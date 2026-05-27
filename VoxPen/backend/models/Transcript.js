@@ -17,6 +17,11 @@ const transcriptSchema = new mongoose.Schema(
       default: "Unknown",
     },
 
+    userId: {
+      type: String,
+      required: true,
+    },
+
     audioPath: {
       type: String,
       required: true,

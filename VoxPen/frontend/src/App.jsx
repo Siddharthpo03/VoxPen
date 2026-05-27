@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { supabase } from "./lib/supabase";
 import axios from "axios";
 
 import Navbar from "./components/Navbar";
@@ -8,17 +8,25 @@ import UploadBox from "./components/UploadBox";
 import TranscriptBox from "./components/TranscriptBox";
 import Footer from "./components/Footer";
 import History from "./components/History";
+import Auth from "./components/Auth";
 
 function App() {
   const [transcript, setTranscript] = useState("");
+
   const [loading, setLoading] = useState(false);
 
   const [history, setHistory] = useState([]);
 
+  const [session, setSession] = useState(null);
+
   useEffect(() => {
+    if (!session) return;
+
     const fetchHistory = async () => {
       try {
-        const res = await axios.get("http://localhost:5000/api/upload/history");
+        const res = await axios.get(
+          `http://localhost:5000/api/upload/history?userId=${session.user.id}`,
+        );
 
         setHistory(res.data);
       } catch (error) {
@@ -27,29 +35,73 @@ function App() {
     };
 
     fetchHistory();
+  }, [session]);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    });
+
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setSession(session);
+      },
+    );
+
+    return () => {
+      listener.subscription.unsubscribe();
+    };
   }, []);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+  };
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white overflow-hidden relative">
-      <div className="absolute top-[-120px] left-[-120px] w-[350px] h-[350px] bg-purple-600 rounded-full blur-[140px] opacity-20 animate-pulse" />
-      <div className="absolute bottom-[-120px] right-[-120px] w-[350px] h-[350px] bg-fuchsia-500 rounded-full blur-[140px] opacity-20 animate-pulse" />
-      <Navbar />
+      {!session ? (
+        <Auth />
+      ) : (
+        <>
+          <Navbar />
 
-      <Hero />
+          <div className="flex flex-col sm:flex-row items-center justify-between px-6 mt-6 gap-4">
+            <div className="bg-zinc-900 border border-zinc-800 px-5 py-3 rounded-2xl shadow-lg">
+              <p className="text-zinc-400 text-sm">Logged in as</p>
 
-      <UploadBox
-        setTranscript={setTranscript}
-        loading={loading}
-        setLoading={setLoading}
-      />
+              <p className="text-purple-400 font-semibold break-all">
+                {session.user.email}
+              </p>
+            </div>
 
-      <TranscriptBox
-        transcript={transcript}
-        loading={loading}
-        history={history}
-      />
-      <History history={history} />
-      <Footer />
+            <button
+              onClick={handleLogout}
+              className="bg-red-600 hover:bg-red-700 px-5 py-3 rounded-xl transition-all duration-300 hover:scale-105 cursor-pointer"
+            >
+              Logout
+            </button>
+          </div>
+
+          <Hero />
+
+          <UploadBox
+            setTranscript={setTranscript}
+            loading={loading}
+            setLoading={setLoading}
+            session={session}
+          />
+
+          <TranscriptBox
+            transcript={transcript}
+            loading={loading}
+            history={history}
+          />
+
+          <History history={history} />
+
+          <Footer />
+        </>
+      )}
     </div>
   );
 }

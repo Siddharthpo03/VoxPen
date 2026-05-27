@@ -28,6 +28,14 @@ router.post("/", upload.single("audio"), async (req, res) => {
   try {
     console.log(req.file);
 
+    console.log(req.body);
+
+    if (!req.file) {
+      return res.status(400).json({
+        message: "No audio file uploaded.",
+      });
+    }
+
     const audioBuffer = fs.readFileSync(req.file.path);
 
     const response = await deepgram.listen.v1.media.transcribeFile(
@@ -49,15 +57,21 @@ router.post("/", upload.single("audio"), async (req, res) => {
       "Could not generate transcript for this audio.";
 
     const detectedLanguage =
-      response.results.channels[0].detected_language ||
-      response.results.channels[0].alternatives[0].languages?.[0] ||
+      response.results.channels[0]?.detected_language ||
+      response.results.channels[0]?.alternatives[0]?.languages?.[0] ||
       "Unknown";
+
     console.log("Detected Language:", detectedLanguage);
 
     const newTranscript = new Transcript({
       fileName: req.file.originalname,
+
       transcript: transcriptText,
+
+      userId: req.body.userId,
+
       audioPath: req.file.path,
+
       language: detectedLanguage,
     });
 
@@ -65,6 +79,7 @@ router.post("/", upload.single("audio"), async (req, res) => {
 
     res.status(200).json({
       message: "Transcription successful",
+
       data: newTranscript,
     });
   } catch (error) {
@@ -72,6 +87,7 @@ router.post("/", upload.single("audio"), async (req, res) => {
 
     res.status(500).json({
       message: "Transcription failed",
+
       error: error.message,
     });
   }
@@ -79,7 +95,11 @@ router.post("/", upload.single("audio"), async (req, res) => {
 
 router.get("/history", async (req, res) => {
   try {
-    const transcripts = await Transcript.find().sort({ createdAt: -1 });
+    const transcripts = await Transcript.find({
+      userId: req.query.userId,
+    }).sort({
+      createdAt: -1,
+    });
 
     res.status(200).json(transcripts);
   } catch (error) {

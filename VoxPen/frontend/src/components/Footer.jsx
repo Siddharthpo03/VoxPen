@@ -3,7 +3,7 @@ import { FiGithub, FiTwitter, FiLinkedin } from "react-icons/fi";
 function Footer() {
   return (
     <footer className="mt-24 border-t border-zinc-800 bg-zinc-950">
-      <div className="max-w-7xl mx-auto px-8 py-10 flex flex-col md:flex-row items-center justify-between gap-6">
+      <div className="max-w-7xl mx-auto px-4 md:px-8 py-10 flex flex-col md:flex-row items-center justify-between gap-6">
         <div>
           <h2 className="text-2xl font-bold text-white">VoxPen</h2>
 

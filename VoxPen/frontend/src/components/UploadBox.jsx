@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import axios from "axios";
-
+import { motion } from "framer-motion";
 import { FiUploadCloud, FiMic } from "react-icons/fi";
 
-function UploadBox({ setTranscript, loading, setLoading }) {
+function UploadBox({ setTranscript, loading, setLoading, session }) {
   const mediaRecorderRef = useRef(null);
 
   const audioChunksRef = useRef([]);
@@ -11,7 +11,13 @@ function UploadBox({ setTranscript, loading, setLoading }) {
   const [recording, setRecording] = useState(false);
 
   const [error, setError] = useState("");
+
   const [seconds, setSeconds] = useState(0);
+
+  const [selectedFile, setSelectedFile] = useState(null);
+
+  const [audioPreview, setAudioPreview] = useState(null);
+
   useEffect(() => {
     let interval;
 
@@ -24,7 +30,15 @@ function UploadBox({ setTranscript, loading, setLoading }) {
     return () => clearInterval(interval);
   }, [recording]);
 
-  const handleUpload = async (e) => {
+  const formatTime = (time) => {
+    const mins = String(Math.floor(time / 60)).padStart(2, "0");
+
+    const secs = String(time % 60).padStart(2, "0");
+
+    return `${mins}:${secs}`;
+  };
+
+  const handleFileSelect = (e) => {
     const file = e.target.files[0];
 
     if (!file) return;
@@ -50,9 +64,19 @@ function UploadBox({ setTranscript, loading, setLoading }) {
       return;
     }
 
+    setSelectedFile(file);
+
+    setAudioPreview(URL.createObjectURL(file));
+  };
+
+  const handleTranscription = async () => {
+    if (!selectedFile) return;
+
     const formData = new FormData();
 
-    formData.append("audio", file);
+    formData.append("audio", selectedFile, selectedFile.name);
+
+    formData.append("userId", session.user.id);
 
     try {
       setLoading(true);
@@ -68,7 +92,7 @@ function UploadBox({ setTranscript, loading, setLoading }) {
     } catch (error) {
       console.log(error);
 
-      setError("Transcription failed. Please try again.");
+      setError("Transcription failed.");
     } finally {
       setLoading(false);
     }
@@ -92,36 +116,22 @@ function UploadBox({ setTranscript, loading, setLoading }) {
         audioChunksRef.current.push(event.data);
       };
 
-      mediaRecorder.onstop = async () => {
+      mediaRecorder.onstop = () => {
         const audioBlob = new Blob(audioChunksRef.current, {
           type: "audio/wav",
         });
 
-        const formData = new FormData();
+        const file = new File([audioBlob], "recording.wav", {
+          type: "audio/wav",
+        });
 
-        formData.append("audio", audioBlob, "recording.wav");
+        setSelectedFile(file);
 
-        try {
-          setLoading(true);
-
-          const res = await axios.post(
-            "http://localhost:5000/api/upload",
-            formData,
-          );
-
-          console.log(res.data);
-
-          setTranscript(res.data.data.transcript);
-        } catch (error) {
-          console.log(error);
-
-          setError("Recording transcription failed.");
-        } finally {
-          setLoading(false);
-        }
+        setAudioPreview(URL.createObjectURL(audioBlob));
       };
 
       setSeconds(0);
+
       mediaRecorder.start();
 
       setRecording(true);
@@ -137,65 +147,88 @@ function UploadBox({ setTranscript, loading, setLoading }) {
 
     setRecording(false);
   };
-  const formatTime = (time) => {
-    const mins = String(Math.floor(time / 60)).padStart(2, "0");
 
-    const secs = String(time % 60).padStart(2, "0");
-
-    return `${mins}:${secs}`;
-  };
   return (
-    <div className="flex justify-center mt-14 relative z-10">
+    <motion.div
+      initial={{
+        opacity: 0,
+        scale: 0.95,
+      }}
+      animate={{
+        opacity: 1,
+        scale: 1,
+      }}
+      transition={{
+        duration: 0.5,
+      }}
+      className="flex justify-center mt-14 relative z-10 px-4"
+    >
       <div className="bg-zinc-900/70 backdrop-blur-xl border border-zinc-800 p-10 rounded-3xl w-full max-w-[700px] text-center shadow-2xl">
         <FiUploadCloud className="text-6xl mx-auto text-purple-500" />
 
         <h2 className="text-3xl font-semibold mt-5">Upload Audio File</h2>
 
         <p className="text-zinc-400 mt-3">
-          Drag and drop audio files or record live speech.
+          Upload audio or record live speech.
         </p>
 
         <div className="flex flex-col sm:flex-row justify-center gap-5 mt-8">
           <label
-            className={`px-4 md:px-8 py-4 rounded-2xl text-lg font-medium transition-all inline-block ${
+            className={`px-8 py-4 rounded-2xl text-lg font-medium transition-all duration-300 hover:scale-105 inline-block ${
               loading
                 ? "bg-purple-800 opacity-50 pointer-events-none"
-                : "bg-purple-600 transition-all duration-300 hover:scale-105 cursor-pointer"
+                : "bg-purple-600 hover:bg-purple-700 cursor-pointer"
             }`}
           >
-            {loading ? "Uploading..." : "Upload Audio"}
-
+            Upload Audio
             <input
               type="file"
               accept="audio/*"
               className="hidden"
-              onChange={handleUpload}
+              onChange={handleFileSelect}
             />
           </label>
 
           <button
             disabled={loading}
             onClick={recording ? stopRecording : startRecording}
-            className={`px-4 md:px-8 py-4 rounded-2xl text-lg transition-all flex items-center gap-2 border ${
+            className={`px-8 py-4 rounded-2xl text-lg transition-all duration-300 hover:scale-105 flex items-center justify-center gap-2 border ${
               recording
                 ? "bg-red-600 border-red-500 hover:bg-red-700"
-                : "border-zinc-700 transition-all duration-300 hover:scale-105"
+                : "border-zinc-700 hover:border-purple-500"
             } ${loading ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
           >
             <FiMic />
 
             {recording ? "Stop Recording" : "Record"}
           </button>
-          {recording && (
-            <p className="text-red-400 mt-5 animate-pulse">
-              🔴 Recording... {formatTime(seconds)}
-            </p>
-          )}
         </div>
+
+        {recording && (
+          <p className="text-red-400 mt-5 animate-pulse">
+            🔴 Recording... {formatTime(seconds)}
+          </p>
+        )}
+
+        {audioPreview && (
+          <div className="mt-8 bg-zinc-950 border border-zinc-800 rounded-2xl p-5">
+            <p className="text-zinc-300 mb-4">🎵 Preview Audio</p>
+
+            <audio controls src={audioPreview} className="w-full" />
+
+            <button
+              onClick={handleTranscription}
+              disabled={loading}
+              className="mt-6 bg-fuchsia-600 hover:bg-fuchsia-700 px-8 py-3 rounded-2xl transition-all duration-300 hover:scale-105 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? "Generating..." : "Generate Transcript"}
+            </button>
+          </div>
+        )}
 
         {error && <p className="text-red-400 mt-5">{error}</p>}
       </div>
-    </div>
+    </motion.div>
   );
 }
 
