@@ -6,9 +6,15 @@ const transcriptSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+
     transcript: {
       type: String,
       default: "",
+    },
+
+    language: {
+      type: String,
+      default: "Unknown",
     },
 
     audioPath: {
