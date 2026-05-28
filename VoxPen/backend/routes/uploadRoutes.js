@@ -40,6 +40,7 @@ const upload = multer({
   },
 
   fileFilter: (req, file, cb) => {
+    console.log("Incoming MIME Type:", file.mimetype);
     const allowedMimeTypes = [
       "audio/mpeg",
       "audio/wav",
@@ -127,11 +128,20 @@ router.post("/", upload.single("audio"), async (req, res) => {
       data: newTranscript,
     });
   } catch (error) {
-    console.log("Upload Error:", error);
+    console.log("========== UPLOAD ERROR ==========");
+    console.log(error);
+    console.log("Message:", error.message);
+
+    if (error.code) {
+      console.log("Code:", error.code);
+    }
+
+    if (error.stack) {
+      console.log(error.stack);
+    }
 
     res.status(500).json({
       message: "Transcription failed",
-
       error: error.message,
     });
   }
