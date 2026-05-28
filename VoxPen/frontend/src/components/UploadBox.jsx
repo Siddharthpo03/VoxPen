@@ -57,6 +57,7 @@ function UploadBox({
       "audio/mp4",
       "audio/x-m4a",
       "audio/webm",
+      "audio/ogg",
     ];
 
     if (!allowedTypes.includes(file.type)) {
@@ -93,6 +94,11 @@ function UploadBox({
       const res = await axios.post(
         `${import.meta.env.VITE_API_URL}/api/upload`,
         formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        },
       );
 
       setTranscript(res.data.data.transcript);
@@ -135,11 +141,11 @@ function UploadBox({
 
       mediaRecorder.onstop = () => {
         const audioBlob = new Blob(audioChunksRef.current, {
-          type: "audio/wav",
+          type: "audio/webm",
         });
 
-        const file = new File([audioBlob], "recording.wav", {
-          type: "audio/wav",
+        const file = new File([audioBlob], "recording.webm", {
+          type: "audio/webm",
         });
 
         setSelectedFile(file);
@@ -211,11 +217,11 @@ function UploadBox({
             />
           </label>
 
-          <div
-            onClick={
-              loading ? null : recording ? stopRecording : startRecording
-            }
-            className={`px-8 py-4 rounded-2xl text-lg transition-all duration-300 hover:scale-105 flex items-center justify-center gap-2 border select-none ${
+          <button
+            type="button"
+            disabled={loading}
+            onClick={recording ? stopRecording : startRecording}
+            className={`px-8 py-4 rounded-2xl text-lg transition-all duration-300 hover:scale-105 flex items-center justify-center gap-2 border ${
               recording
                 ? "bg-red-600 border-red-500 hover:bg-red-700"
                 : "border-zinc-700 hover:border-purple-500"
@@ -224,7 +230,7 @@ function UploadBox({
             <FiMic />
 
             {recording ? "Stop Recording" : "Record"}
-          </div>
+          </button>
         </div>
 
         {recording && (
@@ -239,14 +245,14 @@ function UploadBox({
 
             <audio controls src={audioPreview} className="w-full" />
 
-            <div
-              onClick={loading ? null : handleTranscription}
-              className={`mt-6 bg-fuchsia-600 hover:bg-fuchsia-700 px-8 py-3 rounded-2xl transition-all duration-300 hover:scale-105 select-none inline-block ${
-                loading ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
-              }`}
+            <button
+              type="button"
+              onClick={handleTranscription}
+              disabled={loading}
+              className="mt-6 bg-fuchsia-600 hover:bg-fuchsia-700 px-8 py-3 rounded-2xl transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               {loading ? "Generating..." : "Generate Transcript"}
-            </div>
+            </button>
           </div>
         )}
 
