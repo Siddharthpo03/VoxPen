@@ -55,7 +55,7 @@ VoxPen is a full-stack AI-powered speech-to-text web application that allows use
 VoxPen/
 │
 ├── frontend/
-│   ├── public/
+│   ├── public/ - logo.png, favicon.png
 │   ├── src/
 │   │   ├── assets/
 │   │   ├── components/
