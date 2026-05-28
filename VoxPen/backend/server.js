@@ -17,7 +17,15 @@ app.use(
 );
 
 // Handle preflight requests
-app.options("/(.*)", cors());
+app.use(
+  cors({
+    origin: "https://vox-pen.vercel.app",
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
+  }),
+);
 
 app.use(express.json());
 
