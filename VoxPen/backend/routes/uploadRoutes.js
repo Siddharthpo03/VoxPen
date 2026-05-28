@@ -1,6 +1,7 @@
 import express from "express";
 import multer from "multer";
 import fs from "fs";
+import path from "path";
 import { DeepgramClient } from "@deepgram/sdk";
 import dotenv from "dotenv";
 
@@ -12,23 +13,56 @@ const router = express.Router();
 
 const deepgram = new DeepgramClient(process.env.DEEPGRAM_API_KEY);
 
+// Ensure uploads folder exists
+const uploadsDir = "uploads";
+
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir);
+}
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, "uploads/");
+    cb(null, uploadsDir);
   },
 
   filename: (req, file, cb) => {
-    cb(null, Date.now() + "-" + file.originalname);
+    const safeName = file.originalname.replace(/\s+/g, "-");
+
+    cb(null, `${Date.now()}-${safeName}`);
   },
 });
 
-const upload = multer({ storage });
+const upload = multer({
+  storage,
+
+  limits: {
+    fileSize: 10 * 1024 * 1024,
+  },
+
+  fileFilter: (req, file, cb) => {
+    const allowedMimeTypes = [
+      "audio/mpeg",
+      "audio/wav",
+      "audio/x-wav",
+      "audio/mp4",
+      "audio/x-m4a",
+      "audio/webm",
+      "audio/ogg",
+    ];
+
+    if (!allowedMimeTypes.includes(file.mimetype)) {
+      return cb(new Error("Only valid audio files are allowed."));
+    }
+
+    cb(null, true);
+  },
+});
 
 router.post("/", upload.single("audio"), async (req, res) => {
   try {
-    console.log(req.file);
+    console.log("Uploaded File:", req.file);
 
-    console.log(req.body);
+    console.log("Request Body:", req.body);
 
     if (!req.file) {
       return res.status(400).json({
@@ -36,7 +70,15 @@ router.post("/", upload.single("audio"), async (req, res) => {
       });
     }
 
-    const audioBuffer = fs.readFileSync(req.file.path);
+    if (!req.body.userId) {
+      return res.status(400).json({
+        message: "User ID is required.",
+      });
+    }
+
+    const filePath = path.resolve(req.file.path);
+
+    const audioBuffer = fs.readFileSync(filePath);
 
     const response = await deepgram.listen.v1.media.transcribeFile(
       audioBuffer,
@@ -70,7 +112,7 @@ router.post("/", upload.single("audio"), async (req, res) => {
 
       userId: req.body.userId,
 
-      audioPath: req.file.path,
+      audioPath: req.file.path.replace(/\\/g, "/"),
 
       language: detectedLanguage,
     });
@@ -83,7 +125,7 @@ router.post("/", upload.single("audio"), async (req, res) => {
       data: newTranscript,
     });
   } catch (error) {
-    console.log(error);
+    console.log("Upload Error:", error);
 
     res.status(500).json({
       message: "Transcription failed",
@@ -95,6 +137,12 @@ router.post("/", upload.single("audio"), async (req, res) => {
 
 router.get("/history", async (req, res) => {
   try {
+    if (!req.query.userId) {
+      return res.status(400).json({
+        message: "User ID is required.",
+      });
+    }
+
     const transcripts = await Transcript.find({
       userId: req.query.userId,
     }).sort({
