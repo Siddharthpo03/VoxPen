@@ -11,42 +11,31 @@ function UploadBox({
   setHistory,
 }) {
   const mediaRecorderRef = useRef(null);
-
   const audioChunksRef = useRef([]);
-
   const [recording, setRecording] = useState(false);
-
   const [error, setError] = useState("");
-
   const [seconds, setSeconds] = useState(0);
-
   const [selectedFile, setSelectedFile] = useState(null);
-
   const [audioPreview, setAudioPreview] = useState(null);
 
   useEffect(() => {
     let interval;
-
     if (recording) {
       interval = setInterval(() => {
         setSeconds((prev) => prev + 1);
       }, 1000);
     }
-
     return () => clearInterval(interval);
   }, [recording]);
 
   const formatTime = (time) => {
     const mins = String(Math.floor(time / 60)).padStart(2, "0");
-
     const secs = String(time % 60).padStart(2, "0");
-
     return `${mins}:${secs}`;
   };
 
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
-
     if (!file) return;
 
     setError("");
@@ -62,18 +51,15 @@ function UploadBox({
 
     if (!allowedTypes.includes(file.type)) {
       setError("Only audio files are allowed.");
-
       return;
     }
 
     if (file.size > 10 * 1024 * 1024) {
       setError("File size must be under 10MB.");
-
       return;
     }
 
     setSelectedFile(file);
-
     setAudioPreview(URL.createObjectURL(file));
   };
 
@@ -83,22 +69,16 @@ function UploadBox({
     setError("");
 
     const formData = new FormData();
-
     formData.append("audio", selectedFile, selectedFile.name);
-
     formData.append("userId", session.user.id);
 
     try {
       setLoading(true);
 
+      // ✅ No manual Content-Type — let browser set it with correct boundary
       const res = await axios.post(
         `${import.meta.env.VITE_API_URL}/api/upload`,
         formData,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        },
       );
 
       setTranscript(res.data.data.transcript);
@@ -110,7 +90,6 @@ function UploadBox({
       setHistory(historyRes.data);
     } catch (error) {
       console.log(error);
-
       setError(error.response?.data?.message || "Transcription failed.");
     } finally {
       setLoading(false);
@@ -123,14 +102,10 @@ function UploadBox({
     setError("");
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: true,
-      });
-
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mediaRecorder = new MediaRecorder(stream);
 
       mediaRecorderRef.current = mediaRecorder;
-
       audioChunksRef.current = [];
 
       mediaRecorder.ondataavailable = (event) => {
@@ -149,45 +124,30 @@ function UploadBox({
         });
 
         setSelectedFile(file);
-
         setAudioPreview(URL.createObjectURL(audioBlob));
-
         stream.getTracks().forEach((track) => track.stop());
       };
 
       setSeconds(0);
-
       mediaRecorder.start();
-
       setRecording(true);
     } catch (error) {
       console.log(error);
-
       setError("Microphone access denied.");
     }
   };
 
   const stopRecording = () => {
     if (!mediaRecorderRef.current) return;
-
     mediaRecorderRef.current.stop();
-
     setRecording(false);
   };
 
   return (
     <motion.div
-      initial={{
-        opacity: 0,
-        scale: 0.95,
-      }}
-      animate={{
-        opacity: 1,
-        scale: 1,
-      }}
-      transition={{
-        duration: 0.5,
-      }}
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.5 }}
       className="flex justify-center mt-14 relative z-10 px-4"
     >
       <div className="bg-zinc-900/70 backdrop-blur-xl border border-zinc-800 p-10 rounded-3xl w-full max-w-[700px] text-center shadow-2xl">
@@ -228,7 +188,6 @@ function UploadBox({
             } ${loading ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
           >
             <FiMic />
-
             {recording ? "Stop Recording" : "Record"}
           </button>
         </div>
