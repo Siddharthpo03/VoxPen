@@ -47,7 +47,9 @@ const upload = multer({
       "audio/mp4",
       "audio/x-m4a",
       "audio/webm",
+      "audio/webm;codecs=opus",
       "audio/ogg",
+      "audio/ogg;codecs=opus",
     ];
 
     if (!allowedMimeTypes.includes(file.mimetype)) {
