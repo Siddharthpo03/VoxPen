@@ -74,7 +74,7 @@ function Auth() {
               type="button"
               onClick={() => setIsLogin(!isLogin)}
               style={{ cursor: "pointer" }}
-              className="text-purple-400 ml-2 hover:text-purple-300 transition-colors"
+              className="text-purple-410 ml-2 hover:text-purple-300 transition-colors"
             >
               {isLogin ? "Sign Up" : "Login"}
             </button>
