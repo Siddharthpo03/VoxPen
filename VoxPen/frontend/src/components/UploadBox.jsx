@@ -56,6 +56,7 @@ function UploadBox({
       "audio/wav",
       "audio/mp4",
       "audio/x-m4a",
+      "audio/webm",
     ];
 
     if (!allowedTypes.includes(file.type)) {
@@ -76,7 +77,9 @@ function UploadBox({
   };
 
   const handleTranscription = async () => {
-    if (!selectedFile) return;
+    if (!selectedFile || loading) return;
+
+    setError("");
 
     const formData = new FormData();
 
@@ -92,9 +95,8 @@ function UploadBox({
         formData,
       );
 
-      console.log(res.data);
-
       setTranscript(res.data.data.transcript);
+
       const historyRes = await axios.get(
         `${import.meta.env.VITE_API_URL}/api/upload/history?userId=${session.user.id}`,
       );
@@ -103,13 +105,15 @@ function UploadBox({
     } catch (error) {
       console.log(error);
 
-      setError("Transcription failed.");
+      setError(error.response?.data?.message || "Transcription failed.");
     } finally {
       setLoading(false);
     }
   };
 
   const startRecording = async () => {
+    if (loading) return;
+
     setError("");
 
     try {
@@ -124,7 +128,9 @@ function UploadBox({
       audioChunksRef.current = [];
 
       mediaRecorder.ondataavailable = (event) => {
-        audioChunksRef.current.push(event.data);
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
       };
 
       mediaRecorder.onstop = () => {
@@ -139,6 +145,8 @@ function UploadBox({
         setSelectedFile(file);
 
         setAudioPreview(URL.createObjectURL(audioBlob));
+
+        stream.getTracks().forEach((track) => track.stop());
       };
 
       setSeconds(0);
@@ -154,6 +162,8 @@ function UploadBox({
   };
 
   const stopRecording = () => {
+    if (!mediaRecorderRef.current) return;
+
     mediaRecorderRef.current.stop();
 
     setRecording(false);
@@ -197,6 +207,7 @@ function UploadBox({
               accept="audio/*"
               className="hidden"
               onChange={handleFileSelect}
+              disabled={loading}
             />
           </label>
 
@@ -230,7 +241,7 @@ function UploadBox({
             <button
               onClick={handleTranscription}
               disabled={loading}
-              className="mt-6 bg-fuchsia-600 hover:bg-fuchsia-700 px-8 py-3 rounded-2xl transition-all duration-300 hover:scale-105 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              className="mt-6 bg-fuchsia-600 hover:bg-fuchsia-700 px-8 py-3 rounded-2xl transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               {loading ? "Generating..." : "Generate Transcript"}
             </button>
