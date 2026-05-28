@@ -11,7 +11,7 @@ const app = express();
 
 app.use(
   cors({
-    origin: "https://vox-pen.vercel.app/",
+    origin: "https://vox-pen.vercel.app",
   }),
 );
 app.use(express.json());
