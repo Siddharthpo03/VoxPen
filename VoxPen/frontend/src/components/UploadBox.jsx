@@ -195,7 +195,7 @@ function UploadBox({
 
         <div className="flex flex-col sm:flex-row justify-center gap-5 mt-8">
           <label
-            className={`px-8 py-4 rounded-2xl text-lg font-medium transition-all duration-300 hover:scale-105 inline-block ${
+            className={`px-8 py-4 rounded-2xl text-lg font-medium transition-all duration-300 hover:scale-105 inline-block select-none ${
               loading
                 ? "bg-purple-800 opacity-50 pointer-events-none"
                 : "bg-purple-600 hover:bg-purple-700 cursor-pointer"
@@ -211,10 +211,11 @@ function UploadBox({
             />
           </label>
 
-          <button
-            disabled={loading}
-            onClick={recording ? stopRecording : startRecording}
-            className={`px-8 py-4 rounded-2xl text-lg transition-all duration-300 hover:scale-105 flex items-center justify-center gap-2 border ${
+          <div
+            onClick={
+              loading ? null : recording ? stopRecording : startRecording
+            }
+            className={`px-8 py-4 rounded-2xl text-lg transition-all duration-300 hover:scale-105 flex items-center justify-center gap-2 border select-none ${
               recording
                 ? "bg-red-600 border-red-500 hover:bg-red-700"
                 : "border-zinc-700 hover:border-purple-500"
@@ -223,7 +224,7 @@ function UploadBox({
             <FiMic />
 
             {recording ? "Stop Recording" : "Record"}
-          </button>
+          </div>
         </div>
 
         {recording && (
@@ -238,13 +239,14 @@ function UploadBox({
 
             <audio controls src={audioPreview} className="w-full" />
 
-            <button
-              onClick={handleTranscription}
-              disabled={loading}
-              className="mt-6 bg-fuchsia-600 hover:bg-fuchsia-700 px-8 py-3 rounded-2xl transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            <div
+              onClick={loading ? null : handleTranscription}
+              className={`mt-6 bg-fuchsia-600 hover:bg-fuchsia-700 px-8 py-3 rounded-2xl transition-all duration-300 hover:scale-105 select-none inline-block ${
+                loading ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
+              }`}
             >
               {loading ? "Generating..." : "Generate Transcript"}
-            </button>
+            </div>
           </div>
         )}
 
