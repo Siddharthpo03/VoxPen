@@ -24,7 +24,7 @@ function History({ history }) {
             <div className="mt-6 bg-zinc-950 border border-zinc-800 rounded-2xl p-4">
               <audio
                 id={`audio-${item._id}`}
-                src={`http://localhost:5000/${item.audioPath
+                src={`${import.meta.env.VITE_API_URL}/${item.audioPath
                   .replace(/\\/g, "/")
                   .replace(/^\/+/, "")}`}
               />

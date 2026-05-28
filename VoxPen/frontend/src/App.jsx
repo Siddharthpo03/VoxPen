@@ -24,8 +24,9 @@ function App() {
 
     const fetchHistory = async () => {
       try {
-        const res = await axios.get(
-          `http://localhost:5000/api/upload/history?userId=${session.user.id}`,
+        const res = await axios.post(
+          `${import.meta.env.VITE_API_URL}/api/upload`,
+          formData,
         );
 
         setHistory(res.data);
@@ -89,6 +90,7 @@ function App() {
             loading={loading}
             setLoading={setLoading}
             session={session}
+            setHistory={setHistory}
           />
 
           <TranscriptBox

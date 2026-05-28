@@ -3,7 +3,13 @@ import axios from "axios";
 import { motion } from "framer-motion";
 import { FiUploadCloud, FiMic } from "react-icons/fi";
 
-function UploadBox({ setTranscript, loading, setLoading, session }) {
+function UploadBox({
+  setTranscript,
+  loading,
+  setLoading,
+  session,
+  setHistory,
+}) {
   const mediaRecorderRef = useRef(null);
 
   const audioChunksRef = useRef([]);
@@ -82,13 +88,18 @@ function UploadBox({ setTranscript, loading, setLoading, session }) {
       setLoading(true);
 
       const res = await axios.post(
-        "http://localhost:5000/api/upload",
+        `${import.meta.env.VITE_API_URL}/api/upload`,
         formData,
       );
 
       console.log(res.data);
 
       setTranscript(res.data.data.transcript);
+      const historyRes = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/upload/history?userId=${session.user.id}`,
+      );
+
+      setHistory(historyRes.data);
     } catch (error) {
       console.log(error);
 
