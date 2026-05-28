@@ -24,10 +24,9 @@ function App() {
 
     const fetchHistory = async () => {
       try {
-        const res = await axios.post(
-          `${import.meta.env.VITE_API_URL}/api/upload`,
+        const res = await axios.get(
+          `${import.meta.env.VITE_API_URL}/api/upload/history?userId=${session.user.id}`,
         );
-
         setHistory(res.data);
       } catch (error) {
         console.log(error);
