@@ -27,7 +27,6 @@ const storage = multer.diskStorage({
 
   filename: (req, file, cb) => {
     const safeName = file.originalname.replace(/\s+/g, "-");
-
     cb(null, `${Date.now()}-${safeName}`);
   },
 });
@@ -40,7 +39,12 @@ const upload = multer({
   },
 
   fileFilter: (req, file, cb) => {
+    // Normalize MIME type — strip codec params like "; codecs=opus"
+    const baseMime = file.mimetype.split(";")[0].trim().toLowerCase();
+
     console.log("Incoming MIME Type:", file.mimetype);
+    console.log("Normalized MIME Type:", baseMime);
+
     const allowedMimeTypes = [
       "audio/mpeg",
       "audio/wav",
@@ -48,13 +52,11 @@ const upload = multer({
       "audio/mp4",
       "audio/x-m4a",
       "audio/webm",
-      "audio/webm;codecs=opus",
       "audio/ogg",
-      "audio/ogg;codecs=opus",
     ];
 
-    if (!allowedMimeTypes.includes(file.mimetype)) {
-      return cb(new Error("Only valid audio files are allowed."));
+    if (!allowedMimeTypes.includes(baseMime)) {
+      return cb(new Error(`Unsupported audio format: ${baseMime}`));
     }
 
     cb(null, true);
@@ -64,7 +66,6 @@ const upload = multer({
 router.post("/", upload.single("audio"), async (req, res) => {
   try {
     console.log("Uploaded File:", req.file);
-
     console.log("Request Body:", req.body);
 
     if (!req.file) {
@@ -80,13 +81,12 @@ router.post("/", upload.single("audio"), async (req, res) => {
     }
 
     const filePath = path.resolve(req.file.path);
-
     const audioBuffer = fs.readFileSync(filePath);
 
-    const response = await deepgram.listen.v1.media.transcribeFile(
+    const response = await deepgram.listen.prerecorded.transcribeFile(
       audioBuffer,
       {
-        model: "nova-2-general",
+        model: "nova-2",
         smart_format: true,
         punctuate: true,
         paragraphs: true,
@@ -98,25 +98,26 @@ router.post("/", upload.single("audio"), async (req, res) => {
     );
 
     const transcriptText =
-      response.results.channels[0]?.alternatives[0]?.transcript?.trim() ||
+      response.result?.results?.channels[0]?.alternatives[0]?.transcript?.trim() ||
       "Could not generate transcript for this audio.";
 
     const detectedLanguage =
-      response.results.channels[0]?.detected_language ||
-      response.results.channels[0]?.alternatives[0]?.languages?.[0] ||
+      response.result?.results?.channels[0]?.detected_language ||
+      response.result?.results?.channels[0]?.alternatives[0]?.languages?.[0] ||
       "Unknown";
 
     console.log("Detected Language:", detectedLanguage);
 
+    // Clean up uploaded file after transcription
+    fs.unlink(filePath, (err) => {
+      if (err) console.log("Failed to delete temp file:", err.message);
+    });
+
     const newTranscript = new Transcript({
       fileName: req.file.originalname,
-
       transcript: transcriptText,
-
       userId: req.body.userId,
-
       audioPath: req.file.path.replace(/\\/g, "/"),
-
       language: detectedLanguage,
     });
 
@@ -124,21 +125,12 @@ router.post("/", upload.single("audio"), async (req, res) => {
 
     res.status(200).json({
       message: "Transcription successful",
-
       data: newTranscript,
     });
   } catch (error) {
     console.log("========== UPLOAD ERROR ==========");
-    console.log(error);
     console.log("Message:", error.message);
-
-    if (error.code) {
-      console.log("Code:", error.code);
-    }
-
-    if (error.stack) {
-      console.log(error.stack);
-    }
+    if (error.stack) console.log(error.stack);
 
     res.status(500).json({
       message: "Transcription failed",
