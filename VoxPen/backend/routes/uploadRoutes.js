@@ -39,7 +39,6 @@ const upload = multer({
   },
 
   fileFilter: (req, file, cb) => {
-    // Normalize MIME type — strip codec params like "; codecs=opus"
     const baseMime = file.mimetype.split(";")[0].trim().toLowerCase();
 
     console.log("Incoming MIME Type:", file.mimetype);
@@ -64,6 +63,8 @@ const upload = multer({
 });
 
 router.post("/", upload.single("audio"), async (req, res) => {
+  let filePath = null;
+
   try {
     console.log("Uploaded File:", req.file);
     console.log("Request Body:", req.body);
@@ -80,11 +81,12 @@ router.post("/", upload.single("audio"), async (req, res) => {
       });
     }
 
-    const filePath = path.resolve(req.file.path);
-    const audioBuffer = fs.readFileSync(filePath);
+    filePath = path.resolve(req.file.path);
+    const audioStream = fs.createReadStream(filePath);
 
-    const response = await deepgram.listen.prerecorded.transcribeFile(
-      audioBuffer,
+    // ✅ Correct method for latest Deepgram JS SDK
+    const response = await deepgram.listen.v1.media.transcribeFile(
+      audioStream,
       {
         model: "nova-2",
         smart_format: true,
@@ -98,14 +100,15 @@ router.post("/", upload.single("audio"), async (req, res) => {
     );
 
     const transcriptText =
-      response.result?.results?.channels[0]?.alternatives[0]?.transcript?.trim() ||
+      response.results?.channels[0]?.alternatives[0]?.transcript?.trim() ||
       "Could not generate transcript for this audio.";
 
     const detectedLanguage =
-      response.result?.results?.channels[0]?.detected_language ||
-      response.result?.results?.channels[0]?.alternatives[0]?.languages?.[0] ||
+      response.results?.channels[0]?.detected_language ||
+      response.results?.channels[0]?.alternatives[0]?.languages?.[0] ||
       "Unknown";
 
+    console.log("Transcript:", transcriptText);
     console.log("Detected Language:", detectedLanguage);
 
     // Clean up uploaded file after transcription
@@ -131,6 +134,14 @@ router.post("/", upload.single("audio"), async (req, res) => {
     console.log("========== UPLOAD ERROR ==========");
     console.log("Message:", error.message);
     if (error.stack) console.log(error.stack);
+
+    // Clean up file if error occurred
+    if (filePath) {
+      fs.unlink(filePath, (err) => {
+        if (err)
+          console.log("Failed to delete temp file on error:", err.message);
+      });
+    }
 
     res.status(500).json({
       message: "Transcription failed",
